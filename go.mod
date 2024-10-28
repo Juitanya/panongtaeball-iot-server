@@ -1,4 +1,4 @@
-module GoAgent
+module Panong
 
 go 1.22.2
 

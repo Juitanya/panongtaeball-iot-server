@@ -1,9 +1,9 @@
 package main
 
 import (
-	"GoAgent/pkg/discordbot"
-	"GoAgent/pkg/hwinfo"
-	"GoAgent/pkg/response"
+	"Panong/pkg/discordbot"
+	"Panong/pkg/hwinfo"
+	"Panong/pkg/response"
 	"context"
 	"fmt"
 	"github.com/go-chi/chi/v5"
