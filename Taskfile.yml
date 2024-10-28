@@ -1,0 +1,27 @@
+version: 3
+
+dotenv: [".env"]
+
+tasks:
+  protogen:
+    cmds:
+      - protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative  $(find proto/ -iname "*.proto")
+  migrate-dev:
+    cmds:
+      - atlas schema apply --url "$PSQL_URL" --to "file://schema.hcl" --dev-url "$PSQL_DEV_URL"
+
+  migrate-prod:
+    cmds:
+      - atlas schema apply --url "$PSQL_PROD_URL" --to "file://schema.hcl"
+
+  migrate-tuna:
+    cmds:
+      - atlas schema apply --url "$PSQL_TUNA_URL" --to "file://schema.hcl"
+
+  generate-sql-schema:
+    cmds:
+      - atlas schema inspect -u "$PSQL_URL" --format "{{`{{ sql . }}`}}" > schema.sql
+
+  sqlcgen:
+    cmds:
+      - sqlc generate
