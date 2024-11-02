@@ -1,7 +1,7 @@
 package main
 
 import (
-	"GoAgent/iot"
+	"GoAgent/iot/light"
 	"GoAgent/pkg/hwinfo"
 	"GoAgent/pkg/response"
 	"fmt"
@@ -28,6 +28,19 @@ var connectLostHandler mqtt.ConnectionLostHandler = func(client mqtt.Client, err
 	fmt.Printf("Connect lost: %v", err)
 }
 
+func AuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := r.Header.Get("X-Auth-Token")
+
+		if token == "" || token != viper.GetString("HEADER_SECRET_AUTH") {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func main() {
 	viper.SetConfigFile(".env")
 	err := viper.ReadInConfig()
@@ -38,9 +51,9 @@ func main() {
 	hwClient, _ := hwinfo.NewSystemInfo()
 
 	r := chi.NewRouter()
-	// Add middleware
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(AuthMiddleware)
 	r.Use(middleware.Timeout(1 * time.Minute))
 
 	r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
@@ -70,22 +83,16 @@ func main() {
 		panic(token.Error())
 	}
 
-	r.Mount("/iot", IotRoutes(client))
-
-	// sub(client)
-	// publish(client)
-
-	// client.Disconnect(3000)
+	r.Mount("/light", LightRoutes(r, client))
 
 	log.Println(fmt.Sprintf("HTTP server listening on port %s", appPort))
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", appPort), r))
 }
 
-func IotRoutes(mqttClient mqtt.Client) chi.Router {
-	r := chi.NewRouter()
-	iotHandler := iot.IotHandler{
+func LightRoutes(r *chi.Mux, mqttClient mqtt.Client) chi.Router {
+	lightHandler := light.LightHandler{
 		MqttClient: mqttClient,
 	}
-	r.Get("/{id}", iotHandler.UpdateLight)
+	r.Put("/{action}", lightHandler.UpdateLight)
 	return r
 }
