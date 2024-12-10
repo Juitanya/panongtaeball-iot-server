@@ -24,10 +24,17 @@ type Payload struct {
 func publish(client mqtt.Client, action, light string) error {
 	payload, err := json.Marshal(Payload{State: action})
 	if err != nil {
-		fmt.Println("light publish error: ", err)
+		return err
 	}
 
-	lights := []string{viper.GetString("FIRST_LIGHT"), viper.GetString("SECOND_LIGHT"), viper.GetString("THIRD_LIGHT"), viper.GetString("FOURTH_LIGHT")}
+	lights := []string{
+		viper.GetString("FIRST_LIGHT"),
+		viper.GetString("SECOND_LIGHT"),
+		viper.GetString("THIRD_LIGHT"),
+		viper.GetString("FOURTH_LIGHT"),
+		viper.GetString("IN_FRONT_OF_CLUBHOUSE_LOGO_LIGHT"),
+		viper.GetString("TRIPLE_PLUGS"),
+	}
 
 	if !slices.Contains(lights, light) {
 		return errors.New("light not found")
