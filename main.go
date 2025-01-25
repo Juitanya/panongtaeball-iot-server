@@ -2,6 +2,7 @@ package main
 
 import (
 	"Panong/iot/light"
+	"Panong/iot/speech"
 	"Panong/pkg/hwinfo"
 	"Panong/pkg/response"
 	"fmt"
@@ -84,6 +85,7 @@ func main() {
 	}
 
 	r.Mount("/light", LightRoutes(r, client))
+	r.Mount("/command", CommandRoutes(r, client))
 
 	log.Println(fmt.Sprintf("HTTP server listening on port %s", appPort))
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", appPort), r))
@@ -94,5 +96,11 @@ func LightRoutes(r *chi.Mux, mqttClient mqtt.Client) chi.Router {
 		MqttClient: mqttClient,
 	}
 	r.Put("/{light}/{action}", lightHandler.UpdateLight)
+	return r
+}
+
+func CommandRoutes(r *chi.Mux, mqttClient mqtt.Client) chi.Router {
+	commandHandler := speech.SpeechHandler{}
+	r.Get("/something", commandHandler.Test)
 	return r
 }
