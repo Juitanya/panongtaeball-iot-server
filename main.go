@@ -85,7 +85,7 @@ func main() {
 
 	r.Mount("/light", LightRoutes(r, client))
 
-	log.Println(fmt.Sprintf("HTTP server listening on port %s", appPort))
+	log.Printf("HTTP server listening on port %s", appPort)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", appPort), r))
 }
 
@@ -93,6 +93,8 @@ func LightRoutes(r *chi.Mux, mqttClient mqtt.Client) chi.Router {
 	lightHandler := light.LightHandler{
 		MqttClient: mqttClient,
 	}
+
+	r.Get("/{light}", lightHandler.Light)
 	r.Put("/{light}/{action}", lightHandler.UpdateLight)
 	return r
 }
