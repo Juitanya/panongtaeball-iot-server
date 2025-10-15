@@ -83,7 +83,7 @@ func (l LightHandler) getZigbee2MQTTLightStatus(client mqtt.Client, light string
 		unsubToken := client.Unsubscribe(subscribedTopic)
 		unsubToken.Wait()
 		return status, nil
-	case <-time.After(3 * time.Second):
+	case <-time.After(1 * time.Minute):
 		return "", errors.New("timeout waiting for status")
 	}
 }
@@ -138,5 +138,5 @@ func (l LightHandler) Light(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(status)) // ส่ง payload ที่ได้จาก mqtt ตรง ๆ หรือแปลงอีกทีได้
+	w.Write([]byte(status))
 }
