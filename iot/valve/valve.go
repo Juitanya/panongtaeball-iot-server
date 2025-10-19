@@ -124,7 +124,6 @@ func (v ValveHandler) UpdateValve(w http.ResponseWriter, r *http.Request) {
 }
 
 func (v ValveHandler) Valve(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("get VALVEEEEE...")
 	valve := chi.URLParam(r, "valve")
 	if valve == "" {
 		http.Error(w, "valve param required", http.StatusBadRequest)
@@ -138,7 +137,6 @@ func (v ValveHandler) Valve(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		fmt.Println("error:", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

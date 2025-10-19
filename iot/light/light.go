@@ -53,8 +53,6 @@ func (l LightHandler) getFriendlyName(light string) (string, error) {
 }
 
 func (l LightHandler) getZigbee2MQTTLightStatus(client mqtt.Client, light string) (string, error) {
-	fmt.Println("Getting status for light:", light)
-
 	// 1. ตรวจสอบว่ามีการเชื่อมต่อ MQTT หรือไม่
 	if !client.IsConnected() {
 		token := client.Connect()
@@ -139,7 +137,6 @@ func (l LightHandler) UpdateLight(w http.ResponseWriter, r *http.Request) {
 }
 
 func (l LightHandler) Light(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("light")
 	light := chi.URLParam(r, "light")
 	if light == "" {
 		http.Error(w, "light param required", http.StatusBadRequest)
@@ -153,7 +150,6 @@ func (l LightHandler) Light(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		fmt.Println("error:", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

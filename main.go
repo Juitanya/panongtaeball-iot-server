@@ -84,14 +84,15 @@ func main() {
 		panic(token.Error())
 	}
 
-	r.Mount("/light", LightRoutes(r, client))
-	r.Mount("/valve", ValveRoutes(r, client))
+	r.Mount("/light", LightRoutes(client))
+	r.Mount("/valve", ValveRoutes(client))
 
 	log.Printf("HTTP server listening on port %s", appPort)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", appPort), r))
 }
 
-func LightRoutes(r *chi.Mux, mqttClient mqtt.Client) chi.Router {
+func LightRoutes(mqttClient mqtt.Client) chi.Router {
+	r := chi.NewRouter() // สร้าง router ใหม่
 	lightHandler := light.LightHandler{
 		MqttClient: mqttClient,
 	}
@@ -101,7 +102,8 @@ func LightRoutes(r *chi.Mux, mqttClient mqtt.Client) chi.Router {
 	return r
 }
 
-func ValveRoutes(r *chi.Mux, mqttClient mqtt.Client) chi.Router {
+func ValveRoutes(mqttClient mqtt.Client) chi.Router {
+	r := chi.NewRouter() // สร้าง router ใหม่
 	valveHandler := valve.ValveHandler{
 		MqttClient: mqttClient,
 	}
