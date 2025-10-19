@@ -53,8 +53,18 @@ func (l LightHandler) getFriendlyName(light string) (string, error) {
 }
 
 func (l LightHandler) getZigbee2MQTTLightStatus(client mqtt.Client, light string) (string, error) {
-	statusCh := make(chan string)
+	fmt.Println("Getting status for light:", light)
 
+	// 1. ตรวจสอบว่ามีการเชื่อมต่อ MQTT หรือไม่
+	if !client.IsConnected() {
+		token := client.Connect()
+		token.Wait()
+		if token.Error() != nil {
+			return "", fmt.Errorf("MQTT client not connected: %w", token.Error())
+		}
+	}
+
+	// 2. แปลงชื่อ friendly name
 	friendlyName, err := l.getFriendlyName(light)
 	if err != nil {
 		return "", err
@@ -63,28 +73,37 @@ func (l LightHandler) getZigbee2MQTTLightStatus(client mqtt.Client, light string
 	subscribedTopic := fmt.Sprintf("zigbee2mqtt/%s", friendlyName)
 	getTopic := fmt.Sprintf("zigbee2mqtt/%s/get", light)
 
+	// 3. สร้าง channel สำหรับรับสถานะ
+	statusCh := make(chan string, 1)
+
+	// 4. Subscribe topic ของ light
 	token := client.Subscribe(subscribedTopic, 0, func(client mqtt.Client, msg mqtt.Message) {
 		statusCh <- string(msg.Payload())
 	})
 	token.Wait()
 	if err := token.Error(); err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to subscribe: %w", err)
 	}
 
+	// 5. Publish request สถานะ
 	payload, _ := json.Marshal(map[string]string{"state": ""})
 	pubToken := client.Publish(getTopic, 0, false, payload)
 	pubToken.Wait()
 	if err := pubToken.Error(); err != nil {
-		return "", err
+		client.Unsubscribe(subscribedTopic)
+		return "", fmt.Errorf("failed to publish get request: %w", err)
 	}
 
+	// 6. รอ response จาก channel
 	select {
 	case status := <-statusCh:
 		unsubToken := client.Unsubscribe(subscribedTopic)
 		unsubToken.Wait()
 		return status, nil
-	case <-time.After(1 * time.Minute):
-		return "", errors.New("timeout waiting for status")
+	case <-time.After(30 * time.Second):
+		unsubToken := client.Unsubscribe(subscribedTopic)
+		unsubToken.Wait()
+		return "", errors.New("timeout waiting for light status")
 	}
 }
 
@@ -120,6 +139,7 @@ func (l LightHandler) UpdateLight(w http.ResponseWriter, r *http.Request) {
 }
 
 func (l LightHandler) Light(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("light")
 	light := chi.URLParam(r, "light")
 	if light == "" {
 		http.Error(w, "light param required", http.StatusBadRequest)
@@ -133,6 +153,7 @@ func (l LightHandler) Light(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		fmt.Println("error:", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
