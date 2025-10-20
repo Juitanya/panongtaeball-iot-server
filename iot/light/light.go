@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"slices"
 	"time"
@@ -53,13 +54,18 @@ func (l LightHandler) getFriendlyName(light string) (string, error) {
 }
 
 func (l LightHandler) getZigbee2MQTTLightStatus(client mqtt.Client, light string) (string, error) {
-	// 1. ตรวจสอบว่ามีการเชื่อมต่อ MQTT หรือไม่
-	if !client.IsConnected() {
-		token := client.Connect()
-		token.Wait()
-		if token.Error() != nil {
-			return "", fmt.Errorf("MQTT client not connected: %w", token.Error())
+	// 1. retry connection MQTT
+	connected := false
+	for range 3 {
+		if client.IsConnected() {
+			connected = true
+			break
 		}
+		log.Println("[MQTT] waiting for connection...")
+		time.Sleep(2 * time.Second)
+	}
+	if !connected {
+		return "", fmt.Errorf("MQTT client not connected after retries")
 	}
 
 	// 2. แปลงชื่อ friendly name
