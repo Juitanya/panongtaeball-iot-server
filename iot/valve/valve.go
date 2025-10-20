@@ -34,7 +34,7 @@ func (v ValveHandler) getFriendlyName(light string) (string, error) {
 	valves := v.Valves()
 	switch light {
 	case valves[0]:
-		return "วาล์วน้ำ", nil
+		return "water_valve", nil
 	default:
 		return "", ErrFriendlyNameNotFound
 	}
