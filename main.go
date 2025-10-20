@@ -78,6 +78,7 @@ func main() {
 	opts.SetPassword(viper.GetString("PASSWORD"))
 	opts.SetDefaultPublishHandler(messagePubHandler)
 	opts.SetAutoReconnect(true)
+	opts.SetResumeSubs(true)
 	opts.OnConnect = connectHandler
 	opts.OnConnectionLost = connectLostHandler
 	client := mqtt.NewClient(opts)
