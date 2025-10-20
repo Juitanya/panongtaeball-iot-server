@@ -52,7 +52,7 @@ func (v ValveHandler) getZigbee2MQTTValveStatus(client mqtt.Client, valve string
 		time.Sleep(2 * time.Second)
 	}
 	if !connected {
-		return "", fmt.Errorf("MQTT client not connected after retries")
+		return "", fmt.Errorf("..MQTT client not connected after retries")
 	}
 
 	// 2. แปลงชื่อ friendly name
