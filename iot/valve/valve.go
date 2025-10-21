@@ -77,7 +77,7 @@ func (v ValveHandler) getZigbee2MQTTValveStatus(client mqtt.Client, valve string
 	}
 
 	// 5. Publish request สถานะ
-	payload, _ := json.Marshal(map[string]string{"state": "", "battery": "", "flow": ""})
+	payload, _ := json.Marshal(map[string]string{"state": "", "battery": ""})
 	pubToken := client.Publish(getTopic, 0, false, payload)
 	pubToken.Wait()
 	if err := pubToken.Error(); err != nil {
