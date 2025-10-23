@@ -202,20 +202,37 @@ func (l LightHandler) getZigbee2MQTTLightStatuses(client mqtt.Client) (map[strin
 	return results, nil
 }
 
+type LightStatus struct {
+	ID          string `json:"id"`          // key เดิม
+	Linkquality int    `json:"linkquality"` // จาก JSON string
+	State       string `json:"state"`
+}
+
 func (l LightHandler) GetAllLights(w http.ResponseWriter, r *http.Request) {
-	statuses, err := l.getZigbee2MQTTLightStatuses(l.MqttClient)
+	rawStatuses, err := l.getZigbee2MQTTLightStatuses(l.MqttClient)
 	if err != nil {
 		if errors.Is(err, ErrFriendlyNameNotFound) {
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
-
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	// แปลงค่า string JSON ให้เป็น object พร้อมเพิ่ม id
+	var statuses []LightStatus
+	for k, v := range rawStatuses {
+		var s LightStatus
+		if err := json.Unmarshal([]byte(v), &s); err != nil {
+			http.Error(w, "invalid light data: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		s.ID = k
+		statuses = append(statuses, s)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	payload, err := json.Marshal(statuses)
+	payload, err := json.MarshalIndent(statuses, "", "  ")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
