@@ -100,6 +100,7 @@ func LightRoutes(mqttClient mqtt.Client) chi.Router {
 	}
 
 	r.Get("/{light}", lightHandler.Light)
+	r.Get("/lights", lightHandler.GetAllLights)
 	r.Put("/{light}/{action}", lightHandler.UpdateLight)
 	return r
 }

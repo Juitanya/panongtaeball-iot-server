@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 	"slices"
+	"strings"
+	"sync"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -29,9 +31,9 @@ func (l LightHandler) Lights() []string {
 		viper.GetString("FIRST_LIGHT"),
 		viper.GetString("SECOND_LIGHT"),
 		viper.GetString("THIRD_LIGHT"),
-		viper.GetString("FOURTH_LIGHT"),
+		// viper.GetString("FOURTH_LIGHT"),
 		viper.GetString("IN_FRONT_OF_CLUBHOUSE_LOGO_LIGHT"),
-		viper.GetString("TRIPLE_PLUGS"),
+		// viper.GetString("TRIPLE_PLUGS"),
 	}
 }
 
@@ -44,9 +46,9 @@ func (l LightHandler) getFriendlyName(light string) (string, error) {
 		return "ไฟสนาม2", nil
 	case lights[2]:
 		return "ไฟสนาม3", nil
+	// case lights[3]:
+	// 	return "ไฟสนาม4", nil
 	case lights[3]:
-		return "ไฟสนาม4", nil
-	case lights[4]:
 		return "ไฟโลโก้หน้าคลับเฮ้าส์", nil
 	default:
 		return "", ErrFriendlyNameNotFound
@@ -162,4 +164,62 @@ func (l LightHandler) Light(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(status))
+}
+
+func (l LightHandler) getZigbee2MQTTLightStatuses(client mqtt.Client) (map[string]string, error) {
+	lights := l.Lights()
+	results := make(map[string]string)
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	errCh := make(chan error, len(lights))
+
+	for _, light := range lights {
+		wg.Add(1)
+		go func(light string) {
+			defer wg.Done()
+			status, err := l.getZigbee2MQTTLightStatus(client, light)
+			if err != nil {
+				errCh <- fmt.Errorf("%s: %w", light, err)
+				return
+			}
+			mu.Lock()
+			results[light] = status
+			mu.Unlock()
+		}(light)
+	}
+
+	wg.Wait()
+	close(errCh)
+
+	if len(errCh) > 0 {
+		var errs []string
+		for e := range errCh {
+			errs = append(errs, e.Error())
+		}
+		return results, fmt.Errorf("some lights failed: %s", strings.Join(errs, "; "))
+	}
+
+	return results, nil
+}
+
+func (l LightHandler) GetAllLights(w http.ResponseWriter, r *http.Request) {
+	statuses, err := l.getZigbee2MQTTLightStatuses(l.MqttClient)
+	if err != nil {
+		if errors.Is(err, ErrFriendlyNameNotFound) {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	payload, err := json.Marshal(statuses)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(payload)
 }
